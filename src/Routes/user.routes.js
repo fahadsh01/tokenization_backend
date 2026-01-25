@@ -17,5 +17,5 @@ router.route("/register").post(
 );
 router.route("/login").post(loginUser);
 router.route("/logout").post(verifyjwt, logoutUser);
-router.route("/refreshAccessToken").post(refreshAccessToken);
+router.route("/refresh-Token").post(refreshAccessToken);
 export default router;
