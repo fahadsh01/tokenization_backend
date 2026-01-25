@@ -20,5 +20,14 @@ const fileuploader = async (file) => {
     return null;
   }
 };
+const deletefile=async(Image)=>{
+try {
+  if(!producImage)
+  return null;
+  await cloudinary.deletefile.delete(Image) 
+} catch (error) {
+  return null
+}
+}
 
-export { fileuploader };
+export { fileuploader, deletefile };

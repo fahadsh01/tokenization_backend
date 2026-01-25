@@ -11,13 +11,17 @@ export const verifyjwt = asynchandler(async (req, _, next) => {
       throw new ApiError(401, " Unauthorized request");
     }
     const decodedinfo = jwt.verify(Token, process.env.ACCESS_TOKEN_SECRET);
-    const user = await User.findById(decodedinfo?._id).select(
+        console.log(decodedinfo)
+    console.log("the user name is ", decodedinfo );
+
+    const user = await User.findById(decodedinfo?.userId).select(
       "-password -refreshToken"
     );
     if (!user) {
       throw new ApiError(401, " invalid acccess token ");
     }
     req.user = user;
+    console.log("the user name is ", user.username);
     next();
   } catch (error) {
     throw new ApiError(401, error?.message || " invalid access token ");

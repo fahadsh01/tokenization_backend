@@ -1,1 +1,1 @@
-export const DBname = "apnitube";
+export const DBname = "online-tokenization";

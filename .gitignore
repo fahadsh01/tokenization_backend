@@ -1,4 +1,11 @@
 # Logs
+const = asynchandler(async (req, res) => {
+  return res
+    .status(200)
+    .json(
+      new ApiResponse(200, newAppointment, "Appointments created successfully")
+    );
+});
 logs
 *.log
 npm-debug.log*
