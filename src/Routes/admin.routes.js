@@ -4,7 +4,7 @@ import {
   loginUser,
   logoutUser,
   refreshAccessToken,
-  changeOldPassword,getAdminProfile
+  changeOldPassword,
 } from "../controllers/admin.controller.js";
 import { verifyjwt } from "../middlewares/auth.js";
 import { authmeJWT} from "../middlewares/authme.js"
