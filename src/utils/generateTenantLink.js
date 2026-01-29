@@ -11,7 +11,7 @@ export const generateTenantLink = (tenantId) => {
     .createHmac("sha256", process.env.LINK_SECRET)
     .update(payload)
     .digest("hex")
-    .slice(0, 12); // SHORT signature
+    .slice(0, 12); 
 
-  return `https://127.0.0.1:5000/${tenantId}?e=${exp}&s=${sig}`;
+  return `https://publiclivetoken.netlify.app/${tenantId}?e=${exp}&s=${sig}`;
 };
