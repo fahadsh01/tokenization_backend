@@ -47,3 +47,6 @@ dbConnect().then(() => {
     console.log("🚀 Server running");
   });
 });
+
+
+export { io };
