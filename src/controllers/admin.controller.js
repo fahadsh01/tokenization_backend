@@ -83,13 +83,11 @@ const loginUser = asynchandler(async (req, res) => {
     role === "ADMIN"
       ? await Admin.findById(user._id).select("role")
       : await User.findById(user._id).select("role");
-
 const options = {
   httpOnly: true,
   secure: true,        // REQUIRED for HTTPS
   sameSite: "none",    // REQUIRED for cross-site cookies
 };
-
   return res
     .status(200)
     .cookie("accessToken", accessToken, options)
