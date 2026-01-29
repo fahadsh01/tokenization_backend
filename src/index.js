@@ -6,39 +6,44 @@ import dbConnect from "./db/db.js";
 
 dotenv.config({ path: "./env" });
 
+const allowedSocketOrigins = process.env.SOCKET_CORS_ORIGIN
+  .split(",")
+  .map(o => o.trim());
+
 let io;
 
-dbConnect()
-  .then(() => {
-    const server = http.createServer(app);
+dbConnect().then(() => {
+  const server = http.createServer(app);
 
-    // ✅ Socket initialized HERE
-    io = new Server(server, {
-      cors: {
-        origin: process.env.SOCKET_CORS_ORIGIN,
-        credentials: true,
+  io = new Server(server, {
+    transports: ["websocket", "polling"], // IMPORTANT
+    cors: {
+      origin: (origin, callback) => {
+        if (!origin) return callback(null, origin);
+
+        if (allowedSocketOrigins.includes(origin)) {
+          callback(null, origin); // MUST return single origin
+        } else {
+          callback(new Error("Socket CORS blocked"));
+        }
       },
-    });
-
-    io.on("connection", (socket) => {
-      console.log("🟢 Socket connected:", socket.id);
-
-      socket.on("join-hospital", (tenantId) => {
-        socket.join(`hospital:${tenantId}`);
-        console.log(`🏥 Joined hospital:${tenantId}`);
-      });
-
-      socket.on("disconnect", () => {
-        console.log("🔴 Socket disconnected:", socket.id);
-      });
-    });
-
-    server.listen(process.env.PORT || 5000, () => {
-      console.log(`🚀 Server running on port ${process.env.PORT || 5000}`);
-    });
-  })
-  .catch((err) => {
-    console.log("❌ Database connection failed:", err);
+      credentials: true,
+    },
   });
 
-export { io };
+  io.on("connection", (socket) => {
+    console.log("🟢 Socket connected:", socket.id);
+
+    socket.on("join-hospital", (tenantId) => {
+      socket.join(`hospital:${tenantId}`);
+    });
+
+    socket.on("disconnect", () => {
+      console.log("🔴 Socket disconnected:", socket.id);
+    });
+  });
+
+  server.listen(process.env.PORT || 5000, () => {
+    console.log("🚀 Server running");
+  });
+});
