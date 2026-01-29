@@ -121,6 +121,7 @@ userSchema.methods.generateAccessToken = function () {
       userId: this._id,
       role: this.role,
       tenantId: this.tenantid,
+       status: this.status
     },
     process.env.ACCESS_TOKEN_SECRET,
     {

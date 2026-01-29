@@ -18,7 +18,6 @@ router.route("/register").post(
  router.route("/getAllTnets").get(authmeJWT,tenants);
 router.route("/authme").get(authmeJWT, authMe);
 router.route("/getUserProfile").get(authmeJWT, getUserProfile);
-
 router.route("/change-password").post(verifyjwt, changeOldPassword);
 
 export default router;

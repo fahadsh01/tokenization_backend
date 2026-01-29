@@ -5,17 +5,19 @@ getAppointment,advanceToken,getLiveToken,publicLiveToken
 } from "../controllers/appointments.controllers.js";
 import { verifyjwt } from "../middlewares/auth.js";
 import {authmeJWT} from "../middlewares/authme.js"
+import {subscriptionGuard} from "../middlewares/subscriptionGuard.js"
+
 const appointment = Router();
 appointment.route("/createappointment").post(
- verifyjwt,createappointment
+ verifyjwt,subscriptionGuard,createappointment
 ); 
  appointment.route("/getAppointment").get(
- authmeJWT,getAppointment
+ authmeJWT,subscriptionGuard,getAppointment
 ); 
-appointment.route("/liveToken").get(authmeJWT, getLiveToken)
+appointment.route("/liveToken").get(authmeJWT,subscriptionGuard, getLiveToken)
 
 appointment.route("/advanceToken").post(
-  authmeJWT,advanceToken
+  authmeJWT,subscriptionGuard,advanceToken
 ); 
 appointment.route("/:tenantId/publicLiveToken").get(publicLiveToken)
 

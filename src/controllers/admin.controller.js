@@ -37,28 +37,24 @@ const register = asynchandler(async (req, res) => {
    username,
   });
   if (userexisted) {
-    throw new ApiError(409, "The user  with email or username already exists");
+    throw new ApiError(409, "The user already exists");
   }
   const newUser = await Admin.create({
    username,
     password,
-   
   });
-
   const CreatedUser = await Admin.findById(newUser._id).select(
     "-password -refreshTocken"
   );
   if (!CreatedUser) {
     throw new ApiError(500, "something went wrong while registring the user ");
   }
-
   return res
     .status(201)
-    .json(new ApiResponse(200, CreatedUser, "user registerd successfully "));
+    .json(new ApiResponse(200, {}, "user registerd successfully "));
 });
 const loginUser = asynchandler(async (req, res) => {
   const { username, password } = req.body;
-
   if (!username || !password) {
     throw new ApiError(400, "Username and password are required");
   }
@@ -71,16 +67,22 @@ const loginUser = asynchandler(async (req, res) => {
   if (!user) {
     throw new ApiError(401, "Invalid username or password");
   }
+  
   const isPasswordValid = await user.ispasswordcorrect(password);
   if (!isPasswordValid) {
-    throw new ApiError(401, "Invalid username or password");
+    throw new ApiError(401, "Invalid  password");
   }
-  const { accessToken, refreshToken } =
-    await generateAccessandRefreshToken(user._id);
+  if (role === "USER" && user.expiryDate < new Date()) {
+  if (user.status !== "EXPIRED") {
+    user.status = "EXPIRED";
+    await user.save();
+  }
+}
+  const { accessToken, refreshToken } =await generateAccessandRefreshToken(user._id);
   const loggedInUser =
     role === "ADMIN"
-      ? await Admin.findById(user._id).select("-password -refreshToken")
-      : await User.findById(user._id).select("-password -refreshToken");
+      ? await Admin.findById(user._id).select("role")
+      : await User.findById(user._id).select("role");
 
   const options = {
     httpOnly: true,
@@ -103,7 +105,6 @@ const loginUser = asynchandler(async (req, res) => {
 const logoutUser = asynchandler(async (req, res) => {
   const role = req.user.role;
   let user;
-console.log(req.user._id)
   if (role === "HOSPITAL_ADMIN") {
     user = await User.findByIdAndUpdate(
       req.user._id,

@@ -14,13 +14,14 @@ const paymentSchema = new Schema(
     },
     bank: {
       type: String,
-           required: true,
+      required: true,
 
     },
+    planType:{type: String,
+           required: true,},
     screenshot: {
       type: String,
            required: true,
-
     },
     publicid:{type: String,
            required: true,
@@ -32,7 +33,7 @@ const paymentSchema = new Schema(
     },
     status: {
       type: String,
-      enum: ["PENDING", "SUSPENDED"],
+      enum: ["PENDING", "SUSPENDED","APPROVED"],
       default: "PENDING",
     },
   },

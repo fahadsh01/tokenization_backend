@@ -15,7 +15,7 @@ const createappointment= asynchandler(async(req,res)=>{
         .json({ message: "Patient name and WhatsApp required" });
     }
   if (!tenant_id ) {
-    throw new ApiError(403, "You are not allowed to create a Appionment");
+    throw new ApiError(401, "You are not allowed to create a Appionment");
   }
   const now = new Date();
     const pakistanOffset = 5 * 60; 
@@ -35,8 +35,6 @@ const createappointment= asynchandler(async(req,res)=>{
     );
 
     const tokenNumber = counter.currentToken;
-
-    // --- Step 3: Create appointment ---
     const appointment = await Appointment.create({
       tenant_id,
       patientName,
@@ -46,14 +44,9 @@ const createappointment= asynchandler(async(req,res)=>{
     });
     const link = generateTenantLink(tenant_id);
 
-
-
 const message = `Hello ${patientName},
-
 Your appointment token has been generated successfully.
-
 🔹 Token Number: ${tokenNumber}
-
 You can view your live token status here:
 ${link}
 Please keep this link for today only.
@@ -80,27 +73,9 @@ Doctor`;
   );
 
 })
-const getallAppointment = asynchandler(async (req, res) => {
-  const tenant_id = req.user?.tenant_id;
-
-  if (!tenant_id) {
-    throw new ApiError(401, "Unauthorized user");
-  }
-
-  const appointments = await Appointment.find({ tenant_id }).sort({
-    tokenNumber: 1,
-  });
-
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(200, appointments, "Appointments fetched successfully")
-    );
-});
 const getAppointment = asynchandler(async (req, res) => {
   const tenant_id= req.user?.tenantId;
   const { status  } = req.query;
-console.log( status ,tenant_id)
   if (!tenant_id) {
     throw new ApiError(401, "Unauthorized user");
   }
@@ -136,24 +111,6 @@ const query = { tenant_id ,createdAt: { $gte: startOfDay, $lte: endOfDay }};
     )
   );
 });
-const updateAppointmentconter = asynchandler(async (req, res) => {
-    const tenant_id = req.user?.tenant_id;
-    if (!tenant_id) {
-      throw new ApiError(401, "Unauthorized user");
-    }
-    const lastAppointment = await Livecounter.findOneAndUpdate(
-  tenant_id,
-  {
-    $set: { conter: +1 },
-  },
-  {
-    new: true,
-  }
-);
-  return res
-    .status(200)
-    .json(new ApiResponse(200, n, "Appointments created successfully"));
-});
  const advanceToken = asynchandler(async (req, res) => {
   const tenantId = req.user?.tenantId;
   if (!tenantId) {
@@ -180,8 +137,6 @@ const updateAppointmentconter = asynchandler(async (req, res) => {
     })
       .sort({ tokenNumber: 1 })
       .select("tokenNumber status");
-
-  // 🟢 START QUEUE
   if (!currentToken && nextToken) {
     nextToken.status = "IN_PROGRESS";
     await nextToken.save();
@@ -195,9 +150,15 @@ const updateAppointmentconter = asynchandler(async (req, res) => {
       currentToken:nextToken.tokenNumber?? null,
       nextToken: next?.tokenNumber || null
     });
+      let state;
+   if (!next) {
+    state = "LAST"
+   } else {
+     state = "NEXT"
+   }
     return res.status(200).json(
       new ApiResponse(200, {
-        state: "STARTED",
+        state,
         currentToken:nextToken.tokenNumber?? null,
         nextToken: next?.tokenNumber || null
       })
@@ -217,16 +178,19 @@ const updateAppointmentconter = asynchandler(async (req, res) => {
     }).sort({ tokenNumber: 1 })
     .select("tokenNumber");
     console.log("next",next)
-      
     io.to(`hospital:${tenantId}`).emit("token:update", {
       currentToken:nextToken.tokenNumber?? null,
       nextToken: next?.tokenNumber || null
-
     });
-   
+   let state;
+   if (!next) {
+    state = "LAST"
+   } else {
+     state = "NEXT"
+   }
     return res.status(200).json(
       new ApiResponse(200, {
-        state: "ADVANCED",
+        state,
         currentToken:nextToken.tokenNumber?? null,
         nextToken: next?.tokenNumber || null
       })
@@ -244,7 +208,7 @@ const updateAppointmentconter = asynchandler(async (req, res) => {
   
     return res.status(200).json(
       new ApiResponse(200, {
-        state: "QUEUE_EMPTY",
+        state: "EMPTY",
         currentToken: null,
       })
     );
@@ -256,7 +220,7 @@ const updateAppointmentconter = asynchandler(async (req, res) => {
   });
   return res.status(200).json(
     new ApiResponse(200, {
-      state: "NO_APPOINTMENTS",
+      state: "EMPTY",
       currentToken: null,
     })
   );
@@ -271,7 +235,6 @@ const getLiveToken = asynchandler(async (req, res) => {
 
   const endOfDay = new Date();
   endOfDay.setHours(23, 59, 59, 999);
-
   const currentToken = await Appointment.findOne({
     tenant_id: tenantId,
     status: "IN_PROGRESS",
@@ -283,9 +246,21 @@ const getLiveToken = asynchandler(async (req, res) => {
     status: "WAITING",
     createdAt: { $gte: startOfDay, $lte: endOfDay },
   }).sort({ tokenNumber: 1 });
+let state;
+
+if (!currentToken && !nextToken) {
+  state = "EMPTY";
+} else if (!currentToken && nextToken) {
+  state = "START";
+} else if (currentToken && nextToken) {
+  state = "NEXT";
+} else if (currentToken && !nextToken) {
+  state = "LAST";
+}
 
   return res.status(200).json(
     new ApiResponse(200, {
+      state,
       currentToken: currentToken?.tokenNumber || null,
       nextToken: nextToken?.tokenNumber || null,
       queueState: currentToken ? "IN_PROGRESS" : "IDLE",
@@ -296,16 +271,13 @@ const publicLiveToken = asynchandler(async (req, res) => {
   const { tenantId } = req.params;
 console.log(tenantId )
   if (!tenantId) {
-    throw new ApiError(400, "Tenant ID is required");
+    throw new ApiError(401, "Tenant ID is required");
   }
 const hospital = await User.findOne({tenantid: tenantId,}).select("hospitalname")
-console.log(hospital)
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
-
   const endOfDay = new Date();
   endOfDay.setHours(23, 59, 59, 999);
-
   const currentToken = await Appointment.findOne({
     tenant_id: tenantId,
     status: "IN_PROGRESS",
@@ -328,7 +300,7 @@ console.log(hospital)
   );
 });
 
-export {advanceToken, getLiveToken, publicLiveToken  ,getAppointment, createappointment,  updateAppointmentconter };
+export {advanceToken, getLiveToken, publicLiveToken  ,getAppointment, createappointment, };
 
 
 

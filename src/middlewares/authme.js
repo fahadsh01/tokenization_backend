@@ -21,6 +21,7 @@ export const authmeJWT = asynchandler(async (req, _, next) => {
     _id: decoded.userId,
     role: decoded.role,
     tenantId: decoded.tenantId,
+    status: decoded.status,
   };
 console.log(req.user)
   next();
