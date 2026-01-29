@@ -9,7 +9,6 @@ export const authmeJWT = asynchandler(async (req, _, next) => {
   if (!token) {
     throw new ApiError(401, "Unauthorized");
   }
-
   let decoded;
   try {
     decoded = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
@@ -23,7 +22,6 @@ export const authmeJWT = asynchandler(async (req, _, next) => {
     tenantId: decoded.tenantId,
     status: decoded.status,
   };
-console.log(req.user)
   next();
 });
 
