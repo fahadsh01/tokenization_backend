@@ -15,7 +15,7 @@ dbConnect()
     // ✅ Socket initialized HERE
     io = new Server(server, {
       cors: {
-        origin: process.env.CORS_ORIGIN,
+        origin: process.env.SOCKET_CORS_ORIGIN,
         credentials: true,
       },
     });
