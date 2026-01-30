@@ -31,14 +31,14 @@ const today = formatter.format(now); // YYYY-MM-DD
       { tenant_id, date: today },
       { $inc: { currentToken: 1 } },
       { new: true, upsert: true }
-    );z
-
+    );
     const tokenNumber = counter.currentToken;
     const appointment = await Appointment.create({
       tenant_id,
       patientName,
       whatsapp,
       tokenNumber,
+      appointmentDatePK: today,
       status: "WAITING",
     });
     const link = generateTenantLink(tenant_id);
@@ -78,13 +78,20 @@ const getAppointment = asynchandler(async (req, res) => {
   if (!tenant_id) {
     throw new ApiError(401, "Unauthorized user");
   }
-  const startOfDay = new Date();
-startOfDay.setHours(0, 0, 0, 0);
+ const now = new Date();
+const formatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Karachi",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
 
-const endOfDay = new Date();
-endOfDay.setHours(23, 59, 59, 999);
+const todayPK = formatter.format(now);
+const yesterday = new Date();
+yesterday.setDate(yesterday.getDate() - 1);
+const yesterdayPK = formatter.format(yesterday);
 
-const query = { tenant_id ,createdAt: { $gte: startOfDay, $lte: endOfDay }};
+const query = { tenant_id ,appointmentDatePK: { $in: [yesterdayPK, todayPK] } };
   if (status && status !== "ALL") {
   query.status = status;
 }
@@ -115,36 +122,39 @@ const query = { tenant_id ,createdAt: { $gte: startOfDay, $lte: endOfDay }};
   if (!tenantId) {
     throw new ApiError(401, "Unauthorized");
   }
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
+  const now = new Date();
+const formatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Karachi",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
 
-  const endOfDay = new Date();
-  endOfDay.setHours(23, 59, 59, 999);
+const todayPK = formatter.format(now);
+const yesterday = new Date();
+yesterday.setDate(yesterday.getDate() - 1);
+const yesterdayPK = formatter.format(yesterday);
+
 
   const currentToken = await Appointment.findOne({
     tenant_id: tenantId,
     status: "IN_PROGRESS",
-    createdAt: { $gte: startOfDay, $lte: endOfDay },
-  })
-    .sort({ tokenNumber: 1 })
-    .select("tokenNumber status");
+    appointmentDatePK: { $in: [yesterdayPK, todayPK] }, 
+  }).sort({ appointmentDatePK: 1 ,tokenNumber: 1 }).select("tokenNumber status");
 
     const nextToken = await Appointment.findOne({
       tenant_id: tenantId,
       status: "WAITING",
-      createdAt: { $gte: startOfDay, $lte: endOfDay },
-    })
-      .sort({ tokenNumber: 1 })
-      .select("tokenNumber status");
+appointmentDatePK: { $in: [yesterdayPK, todayPK] },    
+}).sort({appointmentDatePK: 1,tokenNumber: 1}).select("tokenNumber status");
   if (!currentToken && nextToken) {
     nextToken.status = "IN_PROGRESS";
     await nextToken.save();
     const next = await Appointment.findOne({
       tenant_id: tenantId,
       status: "WAITING",
-      createdAt: { $gte: startOfDay, $lte: endOfDay },
-    }).sort({ tokenNumber: 1 })
-      .select("tokenNumber");
+     appointmentDatePK: { $in: [yesterdayPK, todayPK] },    
+}).sort({appointmentDatePK: 1,tokenNumber: 1}).select("tokenNumber status");
     io.to(`hospital:${tenantId}`).emit("token:update", {
       currentToken:nextToken.tokenNumber?? null,
       nextToken: next?.tokenNumber || null
@@ -173,9 +183,8 @@ const query = { tenant_id ,createdAt: { $gte: startOfDay, $lte: endOfDay }};
     const next = await Appointment.findOne({
       tenant_id: tenantId,
       status: "WAITING",
-      createdAt: { $gte: startOfDay, $lte: endOfDay },
-    }).sort({ tokenNumber: 1 })
-    .select("tokenNumber");
+    appointmentDatePK: { $in: [yesterdayPK, todayPK] },    
+}).sort({appointmentDatePK: 1,tokenNumber: 1}).select("tokenNumber status");
     console.log("next",next)
     io.to(`hospital:${tenantId}`).emit("token:update", {
       currentToken:nextToken.tokenNumber?? null,
@@ -229,22 +238,29 @@ const getLiveToken = asynchandler(async (req, res) => {
   if (!tenantId) {
     throw new ApiError(401, "Unauthorized");
   }
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
+   const now = new Date();
+   const formatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Karachi",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
 
-  const endOfDay = new Date();
-  endOfDay.setHours(23, 59, 59, 999);
+const todayPK = formatter.format(now);
+const yesterday = new Date();
+yesterday.setDate(yesterday.getDate() - 1);
+const yesterdayPK = formatter.format(yesterday);
   const currentToken = await Appointment.findOne({
     tenant_id: tenantId,
     status: "IN_PROGRESS",
-    createdAt: { $gte: startOfDay, $lte: endOfDay },
-  }).sort({ tokenNumber: 1 });
+    appointmentDatePK: { $in: [yesterdayPK, todayPK] }, 
+  }).sort({ appointmentDatePK: 1 ,tokenNumber: 1 })
 
   const nextToken = await Appointment.findOne({
     tenant_id: tenantId,
     status: "WAITING",
-    createdAt: { $gte: startOfDay, $lte: endOfDay },
-  }).sort({ tokenNumber: 1 });
+     appointmentDatePK: { $in: [yesterdayPK, todayPK] }, 
+  }).sort({ appointmentDatePK: 1 ,tokenNumber: 1 });
 let state;
 
 if (!currentToken && !nextToken) {
@@ -273,21 +289,29 @@ console.log(tenantId )
     throw new ApiError(401, "Tenant ID is required");
   }
 const hospital = await User.findOne({tenantid: tenantId,}).select("hospitalname")
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
-  const endOfDay = new Date();
-  endOfDay.setHours(23, 59, 59, 999);
+    const now = new Date();
+const formatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Karachi",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+const todayPK = formatter.format(now);
+const yesterday = new Date();
+yesterday.setDate(yesterday.getDate() - 1);
+const yesterdayPK = formatter.format(yesterday);
   const currentToken = await Appointment.findOne({
     tenant_id: tenantId,
     status: "IN_PROGRESS",
-    createdAt: { $gte: startOfDay, $lte: endOfDay },
-  }).sort({ tokenNumber: 1 });
+       appointmentDatePK: { $in: [yesterdayPK, todayPK] }, 
+  }).sort({ appointmentDatePK: 1 ,tokenNumber: 1 });
 
   const nextToken = await Appointment.findOne({
     tenant_id: tenantId,
     status: "WAITING",
-    createdAt: { $gte: startOfDay, $lte: endOfDay },
-  }).sort({ tokenNumber: 1 });
+    appointmentDatePK: { $in: [yesterdayPK, todayPK] }, 
+  }).sort({ appointmentDatePK: 1 ,tokenNumber: 1 });
 
   return res.status(200).json(
     new ApiResponse(200, {

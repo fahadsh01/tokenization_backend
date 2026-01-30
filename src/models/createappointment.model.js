@@ -8,6 +8,12 @@ const appointmentSchema = new Schema(
       index: true,
     },
 
+    appointmentDatePK: {
+      type: String, // "YYYY-MM-DD" Pakistan date
+      required: true,
+      index: true,
+    },
+
     patientName: {
       type: String,
       required: true,
@@ -31,7 +37,8 @@ const appointmentSchema = new Schema(
   },
   { timestamps: true }
 );
-appointmentSchema.index({ tenantId: 1, createdAt: 1 });
-appointmentSchema.index({ tenantId: 1, status: 1, createdAt: 1 });
-appointmentSchema.index({ tenantId: 1, tokenNumber: 1 })
+
+appointmentSchema.index({ tenant_id: 1, appointmentDatePK: 1 });
+appointmentSchema.index({ tenant_id: 1, status: 1, appointmentDatePK: 1 });
+appointmentSchema.index({ tenant_id: 1, tokenNumber: 1 });
 export const Appointment = mongoose.model("Appointment", appointmentSchema);
