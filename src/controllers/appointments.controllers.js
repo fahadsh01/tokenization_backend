@@ -17,7 +17,7 @@ const createappointment= asynchandler(async(req,res)=>{
   if (!tenant_id ) {
     throw new ApiError(401, "You are not allowed to create a Appionment");
   }
-   const now = new Date();
+const now = new Date();
 
 const formatter = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Asia/Karachi",
@@ -31,7 +31,7 @@ const today = formatter.format(now); // YYYY-MM-DD
       { tenant_id, date: today },
       { $inc: { currentToken: 1 } },
       { new: true, upsert: true }
-    );
+    );z
 
     const tokenNumber = counter.currentToken;
     const appointment = await Appointment.create({
