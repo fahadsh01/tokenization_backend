@@ -17,17 +17,16 @@ const createappointment= asynchandler(async(req,res)=>{
   if (!tenant_id ) {
     throw new ApiError(401, "You are not allowed to create a Appionment");
   }
-  const now = new Date();
-    const pakistanOffset = 5 * 60; 
-    const utc = now.getTime() + now.getTimezoneOffset() * 60000;
-    const pakistanTime = new Date(utc + pakistanOffset * 60000);
+   const now = new Date();
 
-    const yyyy = pakistanTime.getUTCFullYear();
-    const mm = String(pakistanTime.getUTCMonth() + 1).padStart(2, "0");
-    const dd = String(pakistanTime.getUTCDate()).padStart(2, "0");
+const formatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Karachi",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
 
-    const today = `${yyyy}-${mm}-${dd}`; // "YYYY-MM-DD"
-
+const today = formatter.format(now); // YYYY-MM-DD
     const counter = await Counter.findOneAndUpdate(
       { tenant_id, date: today },
       { $inc: { currentToken: 1 } },
