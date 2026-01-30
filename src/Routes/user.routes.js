@@ -1,7 +1,6 @@
 import { Router } from "express";
 import {
   register,
-  
   changeOldPassword, tenants ,getUserProfile
 
 } from "../controllers/register.controllers.js";

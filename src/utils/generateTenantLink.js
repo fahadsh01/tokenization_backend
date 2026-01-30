@@ -13,5 +13,5 @@ export const generateTenantLink = (tenantId) => {
     .digest("hex")
     .slice(0, 12); 
 
-  return `https://publiclivetoken.netlify.app/${tenantId}?e=${exp}&s=${sig}`;
+  return `https://publiclivetoken.netlify.app/${tenantId}/publicLiveToken?e=${exp}&s=${sig}`;
 };
