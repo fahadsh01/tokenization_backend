@@ -34,6 +34,20 @@ const appointmentSchema = new Schema(
       enum: ["WAITING", "IN_PROGRESS", "DONE"],
       default: "WAITING",
     },
+     payment: {
+      amount: {
+        type: Number,
+        default: 0,
+      },
+      status: {
+        type: String,
+        enum: ["UNPAID", "PAID"],
+        default: "UNPAID",
+      },
+      paidAt: {
+        type: String,
+      },
+    }
   },
   { timestamps: true }
 );

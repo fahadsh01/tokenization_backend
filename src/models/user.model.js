@@ -9,10 +9,8 @@ const userSchema = new Schema(
     tenantid: {
       type: String,
       default: null,
-            unique: true,
-
+      unique: true,
     },
-
     username: {
       type: String,
       required: true,

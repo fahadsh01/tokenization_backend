@@ -7,7 +7,7 @@ import { generateTenantLink } from "../utils/generateTenantLink.js";
 import { User } from "../models/user.model.js";
 import { io } from "../index.js";
 const createappointment= asynchandler(async(req,res)=>{
-    const { patientName, whatsapp } = req.body;
+    const { patientName, whatsapp,amount } = req.body;
     const tenant_id = req.user.tenantid;
     if (!patientName || !whatsapp) {
       return res
@@ -33,14 +33,25 @@ const today = formatter.format(now); // YYYY-MM-DD
       { new: true, upsert: true }
     );
     const tokenNumber = counter.currentToken;
-    const appointment = await Appointment.create({
-      tenant_id,
-      patientName,
-      whatsapp,
-      tokenNumber,
-      appointmentDatePK: today,
-      status: "WAITING",
-    });
+  const appointmentData = {
+  tenant_id,
+  patientName,
+  whatsapp,
+  tokenNumber,
+  appointmentDatePK: today,
+  status: "WAITING",
+};
+
+if (amount) {
+  appointmentData.payment = {
+    amount: amount,
+    status: "PAID", 
+    paidAt: today,
+  };
+}
+
+const appointment = await Appointment.create(appointmentData);
+
     const link = generateTenantLink(tenant_id);
 
 const message = `Hello ${patientName},
@@ -322,10 +333,219 @@ const yesterdayPK = formatter.format(yesterday);
     })
   );
 });
+const addPatientPayment =asynchandler (async (req, res) => {
+ try {
+  const tenant_Id =req.user.tenantId
+    const { Id } = req.params;
+    const { amount } = req.body;
 
-export {advanceToken, getLiveToken, publicLiveToken  ,getAppointment, createappointment, };
+    const appointment = await Appointment.findById(Id).select("payment");
+
+    if (!appointment) {
+    throw new ApiError(404, "Appointment not found");
+    }
+const now = new Date();
+const formatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Karachi",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
+const today = formatter.format(now); 
+    appointment.payment = {
+      amount,
+      status: "PAID",
+      paidAt:  today,
+    };
+
+    await appointment.save();
+
+    return res.status(200).json(
+    new ApiResponse(200, {},"Payment added successfully")
+  );
+  } catch (err) {
+    return res.status(500).json(
+    new ApiResponse(500, {},"Payment failed")
+  );
+  }
+});
+const getDailyDoctorSummary = asynchandler(async (req, res) => {
+  const id = req.user._id;
+  const tenant_Id = req.user.tenantId;
+  if (!tenant_Id || !id) {
+    throw new ApiError(401, "Unauthorized");
+  }
+
+  const user = await User.findById(id).select("fullname");
+  if (!user) {
+    throw new ApiError(401, "Unauthorized");
+  }
+
+  const name = user.fullname;
+
+  // Pakistan date
+  const now = new Date();
+const formatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Karachi",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+const today = formatter.format(now); 
+
+  const summary = await Appointment.aggregate([
+    { $match: { tenant_id: tenant_Id } },
+    {
+      $facet: {
+        paid: [
+          {
+            $match: {
+              "payment.status": "PAID",
+              "payment.paidAt": today,
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              totalPatients: { $sum: 1 },
+              totalAmount: { $sum: "$payment.amount" },
+            },
+          },
+        ],
+
+        waitingPatients: [
+          {
+            $match: {
+              status: "WAITING",
+              appointmentDatePK: today,
+            },
+          },
+          { $count: "count" },
+        ],
+         donePatients: [
+          {
+            $match: {
+              status: "DONE",
+              appointmentDatePK: today,
+            },
+          },
+          { $count: "count" },
+        ],
+      },
+    },
+  ]);
+
+  const paidData = summary[0]?.paid?.[0] || {};
+  const waitingData = summary[0]?.waitingPatients?.[0] || {};
+  const doneData = summary[0]?.donePatients?.[0] || {};
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        doctorName: name,
+        totalPatients: paidData.totalPatients || 0,
+        totalAmount: paidData.totalAmount || 0,
+        waitingPatients: waitingData.count || 0,
+        donePatients: doneData.count || 0,
+      },
+      "Doctor summary fetched successfully"
+    )
+  );
+});
+const sendWhatsapp= asynchandler(async (req, res) => {
+   try {
+    const id = req.user._id
+  const  tenant_Id  = req.user.tenantId; 
+  if (!tenant_Id || !id) {
+    throw ApiError(401,"unauthorized")
+  }
+const user= await User.findById(id).select("fullname contact")
+const now = new Date();
+const formatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Karachi",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+console.log(formatter)
+
+const today = formatter.format(now); 
+console.log(today)
+const summary = await Appointment.aggregate([
+    { $match: { tenant_id: tenant_Id } },
+    {
+      $facet: {
+        paid: [
+          {
+            $match: {
+              "payment.status": "PAID",
+              "payment.paidAt": today,
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              totalPatients: { $sum: 1 },
+              totalAmount: { $sum: "$payment.amount" },
+            },
+          },
+        ],
+
+        waitingPatients: [
+          {
+            $match: {
+              status: "WAITING",
+              appointmentDatePK: today,
+            },
+          },
+          { $count: "count" },
+        ],
+         donePatients: [
+          {
+            $match: {
+              status: "DONE",
+              appointmentDatePK: today,
+            },
+          },
+          { $count: "count" },
+        ],
+      },
+    },
+  ]);
+
+  const paidData = summary[0]?.paid?.[0] || {};
+  const waitingData = summary[0]?.waitingPatients?.[0] || {};
+  const doneData = summary[0]?.donePatients?.[0] || {};
+
+    console.log(summary)
+   const message = `Assalam-o-Alaikum Dr. ${user.fullname},
+
+📊 Daily Summary: ${today}
+
+🔹 Today’s Paid Patients : ${paidData.totalPatients}
+🔹 Total Earnings: PKR ${paidData.totalAmount}
+🔹 Today’s In Waiting: ${waitingData.count}
+🔹 Today’s Checked Patients: ${doneData.count}
+
+Keep up the great work! 🙌
+Thank you,
+Team Sysvon`;
 
 
+ const whatsappUrl = `https://wa.me/${user.contact}?text=${encodeURIComponent(message)}`;
+  const desktopUrl = `whatsapp://send?phone=${user.contact}&text=${encodeURIComponent(message)}`;
+  return res.status(200).json(
+    new ApiResponse(
+      200,{desktopUrl,whatsappUrl},"whatsapp message sended successfuly"
+    )
+  );
+   
+  } catch (err) {
+    throw ApiError(500,"Failed to fetch summary");
+  }
 
+});
 
-
+export {advanceToken, getLiveToken, publicLiveToken  ,getAppointment, createappointment,addPatientPayment,getDailyDoctorSummary,sendWhatsapp };

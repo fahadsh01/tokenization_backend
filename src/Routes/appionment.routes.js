@@ -1,7 +1,7 @@
 import { Router } from "express";
 import {
  createappointment,
-getAppointment,advanceToken,getLiveToken,publicLiveToken
+getAppointment,advanceToken,getLiveToken,publicLiveToken,addPatientPayment,getDailyDoctorSummary,sendWhatsapp
 } from "../controllers/appointments.controllers.js";
 import { verifyjwt } from "../middlewares/auth.js";
 import {authmeJWT} from "../middlewares/authme.js"
@@ -20,5 +20,8 @@ appointment.route("/advanceToken").post(
   authmeJWT,subscriptionGuard,advanceToken
 ); 
 appointment.route("/:tenantId/publicLiveToken").get(publicLiveToken)
+appointment.route("/:Id/addPatientPayment").post(authmeJWT,addPatientPayment)
+appointment.route("/DoctorSummary").get(authmeJWT,getDailyDoctorSummary)
+appointment.route("/sendWhatsapp").post(authmeJWT,sendWhatsapp)
 
 export default appointment;
