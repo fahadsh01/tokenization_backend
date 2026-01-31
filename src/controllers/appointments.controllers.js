@@ -272,6 +272,11 @@ const yesterdayPK = formatter.format(yesterday);
     status: "WAITING",
      appointmentDatePK: { $in: [yesterdayPK, todayPK] }, 
   }).sort({ appointmentDatePK: 1 ,tokenNumber: 1 });
+   const nexts = await Appointment.find({
+    tenant_id: tenantId,
+    status: "WAITING",
+     appointmentDatePK: { $in: [yesterdayPK, todayPK] }, 
+  }).sort({ appointmentDatePK: 1 ,tokenNumber: 1 }).select("tokenNumber patientName payment.status");
 let state;
 
 if (!currentToken && !nextToken) {
@@ -290,6 +295,7 @@ if (!currentToken && !nextToken) {
       currentToken: currentToken?.tokenNumber || null,
       nextToken: nextToken?.tokenNumber || null,
       queueState: currentToken ? "IN_PROGRESS" : "IDLE",
+      remainingTokens:nexts,
     })
   );
 });
@@ -323,12 +329,17 @@ const yesterdayPK = formatter.format(yesterday);
     status: "WAITING",
     appointmentDatePK: { $in: [yesterdayPK, todayPK] }, 
   }).sort({ appointmentDatePK: 1 ,tokenNumber: 1 });
-
+   const nexts = await Appointment.find({
+    tenant_id: tenantId,
+    status: "WAITING",
+     appointmentDatePK: { $in: [yesterdayPK, todayPK] }, 
+  }).sort({ appointmentDatePK: 1 ,tokenNumber: 1 }).select("tokenNumber patientName payment.status");
   return res.status(200).json(
     new ApiResponse(200, {
       currentToken: currentToken?.tokenNumber ?? null,
       nextToken: nextToken?.tokenNumber ?? null,
       hospital:hospital?.hospitalname,
+       remainingTokens:nexts,
       queueState: currentToken ? "IN_PROGRESS" : "IDLE",
     })
   );
