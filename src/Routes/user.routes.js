@@ -1,7 +1,7 @@
 import { Router } from "express";
 import {
   register,
-  changeOldPassword, tenants ,getUserProfile
+  changeOldPassword, tenants ,getUserProfile,getUserSettings,changeSettings
 
 } from "../controllers/register.controllers.js";
 
@@ -18,5 +18,7 @@ router.route("/register").post(
 router.route("/authme").get(authmeJWT, authMe);
 router.route("/getUserProfile").get(authmeJWT, getUserProfile);
 router.route("/change-password").post(verifyjwt, changeOldPassword);
+router.route("/settings").get(authmeJWT, getUserSettings);
+router.route("/change-settings").put(authmeJWT, changeSettings);
 
 export default router;

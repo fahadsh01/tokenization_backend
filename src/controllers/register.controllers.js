@@ -119,8 +119,44 @@ const  getUserProfile= asynchandler(async (req, res) => {
     )
   );
 });
+const  getUserSettings= asynchandler(async (req, res) => {
+  const id =req.user._id
+  if (!id) {
+    throw new ApiError(401, "Unauthorized");
+  }
+ const user=await User.findById(id).select("settings")
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      user,
+      "settings"
+    )
+  );
+});
+const  changeSettings= asynchandler(async (req, res) => {
+  const id =req.user._id
+  const {settings}=req.body
+  if (!id) {
+    throw new ApiError(401, "Unauthorized");
+  }
+ const user=await User.findByIdAndUpdate(id,
+      { $set: { settings } },{new:true}
+ ).select("settings")
+ if (!user) {
+  throw new ApiError(401, "Unauthorized");
+
+ }
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+     {},
+      "settings"
+    )
+  );
+});
 export {
   register,
   tenants,
-  changeOldPassword,getUserProfile
+  changeOldPassword,getUserProfile,getUserSettings,changeSettings
 };
+

@@ -86,7 +86,11 @@ whatsappConfig: {
       type: Date,
       default: null,
     },
-
+   settings: {
+      type: String,
+      enum: ["BEFORE", "AFTER", "BOTH","NONE"],
+      default: "BEFORE",
+    },
     status: {
       type: String,
       enum: ["Active", "EXPIRED", "SUSPENDED"],
@@ -119,7 +123,8 @@ userSchema.methods.generateAccessToken = function () {
       userId: this._id,
       role: this.role,
       tenantId: this.tenantid,
-       status: this.status
+       status: this.status,
+       settings: this.settings
     },
     process.env.ACCESS_TOKEN_SECRET,
     {

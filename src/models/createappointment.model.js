@@ -31,7 +31,7 @@ const appointmentSchema = new Schema(
 
     status: {
       type: String,
-      enum: ["WAITING", "IN_PROGRESS", "DONE"],
+      enum: ["WAITING", "IN_PROGRESS", "DONE","SKIPED"],
       default: "WAITING",
     },
      payment: {

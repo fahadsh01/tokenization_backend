@@ -6,6 +6,7 @@ import { Counter } from "../models/livecounter.model.js";
 import { generateTenantLink } from "../utils/generateTenantLink.js";
 import { User } from "../models/user.model.js";
 import { io } from "../index.js";
+import payment from "../Routes/payments.routes .js";
 const createappointment= asynchandler(async(req,res)=>{
     const { patientName, whatsapp,amount } = req.body;
     const tenant_id = req.user.tenantid;
@@ -128,6 +129,48 @@ const query = { tenant_id ,appointmentDatePK: { $in: [yesterdayPK, todayPK] } };
     )
   );
 });
+
+const getAppointmentPaymentStatus = asynchandler(async (req, res) => {
+  const tenant_id = req.user?.tenantId;
+  const { status } = req.query;
+
+  if (!tenant_id) {
+    throw new ApiError(401, "Unauthorized user");
+  }
+
+  const now = new Date();
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Karachi",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+
+  const todayPK = formatter.format(now);
+
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayPK = formatter.format(yesterday);
+
+  const query = {
+    tenant_id,
+    appointmentDatePK: { $in: [yesterdayPK, todayPK] },
+    "payment.status": status, // fixed nested field
+  };
+
+  const appointments = await Appointment.find(query).sort({ tokenNumber: 1 });
+
+  if (!appointments.length) {
+    return res.status(200).json(
+      new ApiResponse(200, [], `No ${status} appointments for today`)
+    );
+  }
+
+  return res.status(200).json(
+    new ApiResponse(200, appointments, "Appointments fetched successfully")
+  );
+});
+
  const advanceToken = asynchandler(async (req, res) => {
   const tenantId = req.user?.tenantId;
   if (!tenantId) {
@@ -246,48 +289,67 @@ appointmentDatePK: { $in: [yesterdayPK, todayPK] },
 });
 const getLiveToken = asynchandler(async (req, res) => {
   const tenantId = req.user?.tenantId;
+  const setting = req.user?.settings || "NONE";
+
   if (!tenantId) {
     throw new ApiError(401, "Unauthorized");
   }
-   const now = new Date();
-   const formatter = new Intl.DateTimeFormat("en-CA", {
-  timeZone: "Asia/Karachi",
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-});
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Karachi",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
 
-const todayPK = formatter.format(now);
-const yesterday = new Date();
-yesterday.setDate(yesterday.getDate() - 1);
-const yesterdayPK = formatter.format(yesterday);
+  const todayPK = formatter.format(new Date());
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayPK = formatter.format(yesterday);
+
+  const dateFilter = { $in: [yesterdayPK, todayPK] };
   const currentToken = await Appointment.findOne({
     tenant_id: tenantId,
     status: "IN_PROGRESS",
-    appointmentDatePK: { $in: [yesterdayPK, todayPK] }, 
-  }).sort({ appointmentDatePK: 1 ,tokenNumber: 1 })
+    appointmentDatePK: dateFilter,
+  })
+    .sort({ appointmentDatePK: 1, tokenNumber: 1 })
+    .select("tokenNumber");
 
   const nextToken = await Appointment.findOne({
     tenant_id: tenantId,
     status: "WAITING",
-     appointmentDatePK: { $in: [yesterdayPK, todayPK] }, 
-  }).sort({ appointmentDatePK: 1 ,tokenNumber: 1 });
-   const nexts = await Appointment.find({
-    tenant_id: tenantId,
-    status: "WAITING",
-     appointmentDatePK: { $in: [yesterdayPK, todayPK] }, 
-  }).sort({ appointmentDatePK: 1 ,tokenNumber: 1 }).select("tokenNumber patientName payment.status");
-let state;
+    appointmentDatePK: dateFilter,
+  })
+    .sort({ appointmentDatePK: 1, tokenNumber: 1 })
+    .select("tokenNumber");
 
-if (!currentToken && !nextToken) {
-  state = "EMPTY";
-} else if (!currentToken && nextToken) {
-  state = "START";
-} else if (currentToken && nextToken) {
-  state = "NEXT";
-} else if (currentToken && !nextToken) {
-  state = "LAST";
-}
+  let waitingTokens = [];
+  let doneAndSkippedTokens = [];
+
+  if (setting === "BEFORE" || setting === "BOTH") {
+    waitingTokens = await Appointment.find({
+      tenant_id: tenantId,
+      status: "WAITING",
+      appointmentDatePK: dateFilter,
+    })
+      .sort({ appointmentDatePK: 1, tokenNumber: 1 })
+      .select("tokenNumber patientName payment.status");
+  }
+
+  if (setting === "AFTER" || setting === "BOTH") {
+    doneAndSkippedTokens = await Appointment.find({
+      tenant_id: tenantId,
+      status: { $in: ["DONE", "SKIPPED"] },
+      appointmentDatePK: dateFilter,
+    })
+      .sort({ appointmentDatePK: 1, tokenNumber: 1 })
+      .select("tokenNumber patientName payment.status");
+  }
+
+  let state = "EMPTY";
+  if (!currentToken && nextToken) state = "START";
+  else if (currentToken && nextToken) state = "NEXT";
+  else if (currentToken && !nextToken) state = "LAST";
 
   return res.status(200).json(
     new ApiResponse(200, {
@@ -295,7 +357,9 @@ if (!currentToken && !nextToken) {
       currentToken: currentToken?.tokenNumber || null,
       nextToken: nextToken?.tokenNumber || null,
       queueState: currentToken ? "IN_PROGRESS" : "IDLE",
-      remainingTokens:nexts,
+      setting,
+      waitingTokens,
+      doneAndSkippedTokens,
     })
   );
 });
@@ -322,18 +386,18 @@ const yesterdayPK = formatter.format(yesterday);
     tenant_id: tenantId,
     status: "IN_PROGRESS",
        appointmentDatePK: { $in: [yesterdayPK, todayPK] }, 
-  }).sort({ appointmentDatePK: 1 ,tokenNumber: 1 });
+  }).sort({ appointmentDatePK: 1 ,tokenNumber: 1 }).select("tokenNumber status");
 
   const nextToken = await Appointment.findOne({
     tenant_id: tenantId,
     status: "WAITING",
     appointmentDatePK: { $in: [yesterdayPK, todayPK] }, 
-  }).sort({ appointmentDatePK: 1 ,tokenNumber: 1 });
+  }).sort({ appointmentDatePK: 1 ,tokenNumber: 1 }).select("tokenNumber status");
    const nexts = await Appointment.find({
     tenant_id: tenantId,
     status: "WAITING",
      appointmentDatePK: { $in: [yesterdayPK, todayPK] }, 
-  }).sort({ appointmentDatePK: 1 ,tokenNumber: 1 }).select("tokenNumber patientName payment.status");
+  }).sort({ appointmentDatePK: 1 ,tokenNumber: 1 }).select("tokenNumber");
   return res.status(200).json(
     new ApiResponse(200, {
       currentToken: currentToken?.tokenNumber ?? null,
@@ -347,8 +411,13 @@ const yesterdayPK = formatter.format(yesterday);
 const addPatientPayment =asynchandler (async (req, res) => {
  try {
   const tenant_Id =req.user.tenantId
+  console.log(tenant_Id)
+  if (!tenant_Id) {
+    throw ApiError (401,"unauthorized")
+  }
     const { Id } = req.params;
     const { amount } = req.body;
+   console.log(Id)
 
     const appointment = await Appointment.findById(Id).select("payment");
 
@@ -558,5 +627,55 @@ Team Sysvon`;
   }
 
 });
+const skipLiveToken = asynchandler(async (req, res) => {
+  const tenantId = req.user?.tenantId;
+  if (!tenantId) {
+    throw new ApiError(401, "Unauthorized");
+  }
 
-export {advanceToken, getLiveToken, publicLiveToken  ,getAppointment, createappointment,addPatientPayment,getDailyDoctorSummary,sendWhatsapp };
+  const now = new Date();
+
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Karachi",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+
+  const todayPK = formatter.format(now);
+
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayPK = formatter.format(yesterday);
+
+  const skippedToken = await Appointment.findOneAndUpdate(
+    {
+      tenant_id: tenantId,
+      status: "IN_PROGRESS",
+      appointmentDatePK: { $in: [yesterdayPK, todayPK] },
+    },
+    {
+      $set: { status: "SKIPPED" },
+    },
+    {
+      sort: { appointmentDatePK: 1, tokenNumber: 1 },
+      new: true,
+      select: "tokenNumber status",
+    }
+  );
+
+  if (!skippedToken) {
+    throw new ApiError(404, "No active token to skip");
+  }
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      { skipped: skippedToken.tokenNumber },
+      `Skipped token ${skippedToken.tokenNumber} successfully`
+    )
+  );
+});
+
+
+export {advanceToken, getLiveToken, publicLiveToken  ,getAppointment, createappointment,addPatientPayment,getDailyDoctorSummary,sendWhatsapp,skipLiveToken,getAppointmentPaymentStatus };
