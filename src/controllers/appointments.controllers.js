@@ -109,7 +109,7 @@ const query = { tenant_id ,appointmentDatePK: { $in: [yesterdayPK, todayPK] } };
 }
   const appointments = await Appointment.find(
      query
-  ).sort({ tokenNumber: 1 });
+  ).sort({ appointmentDatePK: 1 , tokenNumber: 1 });
   
   if (!appointments.length) {
     return res.status(200).json(
@@ -158,7 +158,7 @@ const getAppointmentPaymentStatus = asynchandler(async (req, res) => {
     "payment.status": status, // fixed nested field
   };
 
-  const appointments = await Appointment.find(query).sort({ tokenNumber: 1 });
+  const appointments = await Appointment.find(query).sort({ appointmentDatePK: 1, tokenNumber: 1 });
 
   if (!appointments.length) {
     return res.status(200).json(
