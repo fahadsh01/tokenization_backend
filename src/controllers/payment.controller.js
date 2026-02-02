@@ -223,7 +223,6 @@ if (!tenantid && role !== "SUPER_ADMIN") {
     .json(
       new ApiResponse(200,  accounts, `No accounts `)
     );}
-    console.log(accounts)
   return res
     .status(200)
     .json(

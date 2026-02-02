@@ -23,7 +23,6 @@ export const authmeJWT = asynchandler(async (req, _, next) => {
     status: decoded.status,
     settings: decoded.settings
   };
-  console.log(req.user)
   next();
 });
 
