@@ -63,8 +63,8 @@ const messageu = `🌸 السلام علیکم ${patientName}،
 
 آپ کا اپائنٹمنٹ ٹوکن کامیابی سے جاری ہو گیا ہے۔
 🔹 ٹوکن نمبر: ${tokenNumber}
-⏰ وقت: ${time}
-💻 لائیو ٹوکن اسٹیٹس دیکھنے کے لیے:
+🔹 وقت: ${time}
+🔹 لائیو ٹوکن اسٹیٹس دیکھنے کے لیے:
 ${link}
 
 ⚠️ کلینک آنے سے پہلے لائیو ٹوکن اسٹیٹس ضرور چیک کریں۔
@@ -73,13 +73,12 @@ ${link}
 شکریہ،
 Dr. ${req.user.fullname}`;
 
-const messagee = `🌸 Assalam-o-Alaikum ${patientName},
+const messagee = ` Assalam-o-Alaikum ${patientName},
 
 Your appointment token has been generated.
 🔹 Token Number: ${tokenNumber}
-⏰ Time: ${time}
-
-💻 Live token status:
+🔹Time: ${time}
+🔹 Live token status:
 ${link}
 
 ⚠️ Please check the live token status before coming.
