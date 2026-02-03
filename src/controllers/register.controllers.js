@@ -89,17 +89,21 @@ if (!tenants.length) {
       new ApiResponse(200,tenants, "Fetched tenants successfully")
     );
 });
-const changeOldPassword = asynchandler(async (req, res) => {
-  const { oldPassword, newPassword } = req.body;
-  const user = await User.findById(req.user?._id);
+const forgetPassword = asynchandler(async (req, res) => {
+  const { username,contact, password } = req.body;
+   if (
+    [username,contact, password ].some(
+      (field) => !field || field.trim() === ""
+    )
+  ) {
+    throw new ApiError(400, "All required fields must be filled");
+  }
+  const user = await User.findOne(contact,username);
   if (!user) {
-    throw new ApiError(400, "user Not found ");
+    throw new ApiError(400, "Invalid contact or username ");
   }
-  const isMatch = await user.ispasswordcorrect(oldPassword);
-  if (!isMatch) {
-    throw new ApiError(401, "invalid Old Password  ");
-  }
-  user.password = newPassword;
+ 
+  user.password = password;
   await user.save({ validateBeforeSave: false });
   return res
     .status(200)
@@ -157,6 +161,6 @@ const  changeSettings= asynchandler(async (req, res) => {
 export {
   register,
   tenants,
-  changeOldPassword,getUserProfile,getUserSettings,changeSettings
+  forgetPassword,getUserProfile,getUserSettings,changeSettings
 };
 

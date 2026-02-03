@@ -129,7 +129,6 @@ const query = { tenant_id ,appointmentDatePK: { $in: [yesterdayPK, todayPK] } };
     )
   );
 });
-
 const getAppointmentPaymentStatus = asynchandler(async (req, res) => {
   const tenant_id = req.user?.tenantId;
   const { status } = req.query;
@@ -170,7 +169,6 @@ const getAppointmentPaymentStatus = asynchandler(async (req, res) => {
     new ApiResponse(200, appointments, "Appointments fetched successfully")
   );
 });
-
  const advanceToken = asynchandler(async (req, res) => {
   const tenantId = req.user?.tenantId;
   if (!tenantId) {
@@ -322,6 +320,40 @@ const getLiveToken = asynchandler(async (req, res) => {
   })
     .sort({ appointmentDatePK: 1, tokenNumber: 1 })
     .select("tokenNumber");
+  let state = "EMPTY";
+  if (!currentToken && nextToken) state = "START";
+  else if (currentToken && nextToken) state = "NEXT";
+  else if (currentToken && !nextToken) state = "LAST";
+
+  return res.status(200).json(
+    new ApiResponse(200, {
+      state,
+      currentToken: currentToken?.tokenNumber || null,
+      nextToken: nextToken?.tokenNumber || null,
+      queueState: currentToken ? "IN_PROGRESS" : "IDLE",
+      setting,
+    })
+  );
+});
+const refreshLiveToken = asynchandler(async (req, res) => {
+  const tenantId = req.user?.tenantId;
+  const setting = req.user?.settings || "NONE";
+  if (!tenantId) {
+    throw new ApiError(401, "Unauthorized");
+  }
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Karachi",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+
+  const todayPK = formatter.format(new Date());
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayPK = formatter.format(yesterday);
+
+  const dateFilter = { $in: [yesterdayPK, todayPK] };
 
   let waitingTokens = [];
   let doneAndSkippedTokens = [];
@@ -345,22 +377,14 @@ const getLiveToken = asynchandler(async (req, res) => {
       .sort({ appointmentDatePK: 1, tokenNumber: 1 })
       .select("tokenNumber patientName payment.status");
   }
-
-  let state = "EMPTY";
-  if (!currentToken && nextToken) state = "START";
-  else if (currentToken && nextToken) state = "NEXT";
-  else if (currentToken && !nextToken) state = "LAST";
+  
 
   return res.status(200).json(
     new ApiResponse(200, {
-      state,
-      currentToken: currentToken?.tokenNumber || null,
-      nextToken: nextToken?.tokenNumber || null,
-      queueState: currentToken ? "IN_PROGRESS" : "IDLE",
-      setting,
+       setting,
       waitingTokens,
       doneAndSkippedTokens,
-    })
+    } ,)
   );
 });
 const publicLiveToken = asynchandler(async (req, res) => {
@@ -676,6 +700,80 @@ const skipLiveToken = asynchandler(async (req, res) => {
     )
   );
 });
+const getMonthlyDoctorSummary = asynchandler(async (req, res) => {
+  const userId = req.user._id;
+  const tenant_Id = req.user.tenantId;
 
+  if (!tenant_Id || !userId) {
+    throw new ApiError(401, "Unauthorized");
+  }
 
-export {advanceToken, getLiveToken, publicLiveToken  ,getAppointment, createappointment,addPatientPayment,getDailyDoctorSummary,sendWhatsapp,skipLiveToken,getAppointmentPaymentStatus };
+  const user = await User.findById(userId).select("fullname");
+  if (!user) {
+    throw new ApiError(401, "Unauthorized");
+  }
+
+  const doctorName = user.fullname;
+  const { month, year } = req.query;
+  const now = new Date();
+  const y = year || now.getFullYear();
+  const m = month || String(now.getMonth() + 1).padStart(2, "0");
+
+  const fromDate = `${y}-${m}-01`;
+  const toDate = `${y}-${m}-31`; 
+
+  const summary = await Appointment.aggregate([
+    {
+      $match: {
+        tenant_id: tenant_Id,
+        "payment.status": "PAID",
+        "payment.paidAt": {
+          $gte: fromDate,
+          $lte: toDate,
+        },
+      },
+    },
+    {
+      $group: {
+        _id: "$payment.paidAt", // daily breakdown
+        dailyPatients: { $sum: 1 },
+        dailyAmount: { $sum: "$payment.amount" },
+      },
+    },
+    {
+      $sort: { _id: 1 }, // date ascending
+    },
+    {
+      $group: {
+        _id: null,
+        totalPatients: { $sum: "$dailyPatients" },
+        totalAmount: { $sum: "$dailyAmount" },
+        days: {
+          $push: {
+            date: "$_id",
+            patients: "$dailyPatients",
+            amount: "$dailyAmount",
+          },
+        },
+      },
+    },
+  ]);
+
+  const data = summary[0] || {};
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        doctorName,
+        month: `${y}-${m}`,
+        totalPatients: data.totalPatients || 0,
+        totalAmount: data.totalAmount || 0,
+        dailyBreakdown: data.days || [],
+      },
+      "Monthly summary fetched successfully"
+    )
+  );
+});
+
+export {advanceToken, getLiveToken, publicLiveToken  ,getAppointment, createappointment,addPatientPayment,getDailyDoctorSummary,sendWhatsapp,skipLiveToken,getAppointmentPaymentStatus,getMonthlyDoctorSummary,refreshLiveToken };
