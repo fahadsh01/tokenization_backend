@@ -1,7 +1,7 @@
 import { Router } from "express";
 import {
   register,
-   forgetPassword, tenants ,getUserProfile,getUserSettings,changeSettings
+   forgetPassword, tenants ,getUserProfile,getUserSettings,changeSettings,changewaplang
 
 } from "../controllers/register.controllers.js";
 
@@ -20,5 +20,6 @@ router.route("/getUserProfile").get(authmeJWT, getUserProfile);
 router.route("/forgetPassword").post(verifyjwt,  forgetPassword);
 router.route("/settings").get(authmeJWT, getUserSettings);
 router.route("/change-settings").put(authmeJWT, changeSettings);
+router.route("/change-whatsapp-language").put(authmeJWT, changewaplang);
 
 export default router;

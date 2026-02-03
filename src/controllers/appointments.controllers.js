@@ -8,7 +8,7 @@ import { User } from "../models/user.model.js";
 import { io } from "../index.js";
 import payment from "../Routes/payments.routes .js";
 const createappointment= asynchandler(async(req,res)=>{
-    const { patientName, whatsapp,amount } = req.body;
+    const { patientName, whatsapp,amount,time } = req.body;
     const tenant_id = req.user.tenantid;
     if (!patientName || !whatsapp) {
       return res
@@ -43,6 +43,11 @@ const today = formatter.format(now); // YYYY-MM-DD
   status: "WAITING",
 };
 
+if (time) {
+  appointmentData.time = time;
+}
+
+
 if (amount) {
   appointmentData.payment = {
     amount: amount,
@@ -50,20 +55,41 @@ if (amount) {
     paidAt: today,
   };
 }
-
 const appointment = await Appointment.create(appointmentData);
-
     const link = generateTenantLink(tenant_id);
 
-const message = `Hello ${patientName},
-Your appointment token has been generated successfully.
-🔹 Token Number: ${tokenNumber}
-You can view your live token status here:
+
+const messageu = `🌸 السلام علیکم ${patientName}،
+
+آپ کا اپائنٹمنٹ ٹوکن کامیابی سے جاری ہو گیا ہے۔
+🔹 ٹوکن نمبر: ${tokenNumber}
+⏰ وقت: ${time}
+💻 لائیو ٹوکن اسٹیٹس دیکھنے کے لیے:
 ${link}
-Please keep this link for today only.
+
+⚠️ کلینک آنے سے پہلے لائیو ٹوکن اسٹیٹس ضرور چیک کریں۔
+✅ جب آپ کا ٹوکن نمبر قریب ہو، اسی وقت آئیں تاکہ ہسپتال میں انتظار نہ کرنا پڑے۔
+
+شکریہ،
+Dr. ${req.user.fullname}`;
+
+const messagee = `🌸 Assalam-o-Alaikum ${patientName},
+
+Your appointment token has been generated.
+🔹 Token Number: ${tokenNumber}
+⏰ Time: ${time}
+
+💻 Live token status:
+${link}
+
+⚠️ Please check the live token status before coming.
+✅ Come when your token number is near, so you don’t have to wait at the clinic.
 
 Thank you,
-Doctor`;
+Dr. ${req.user.fullname}`;
+
+const message = req.user.waplang === "EN" ? messagee : messageu;
+
 
 
   const whatsappUrl = `https://wa.me/${whatsapp}?text=${encodeURIComponent(message)}`;
@@ -207,6 +233,7 @@ appointmentDatePK: { $in: [yesterdayPK, todayPK] },
       status: "WAITING",
      appointmentDatePK: { $in: [yesterdayPK, todayPK] },    
 }).sort({appointmentDatePK: 1,tokenNumber: 1}).select("tokenNumber status");
+
     io.to(`hospital:${tenantId}`).emit("token:update", {
       currentToken:nextToken.tokenNumber?? null,
       nextToken: next?.tokenNumber || null
@@ -237,7 +264,6 @@ appointmentDatePK: { $in: [yesterdayPK, todayPK] },
       status: "WAITING",
     appointmentDatePK: { $in: [yesterdayPK, todayPK] },    
 }).sort({appointmentDatePK: 1,tokenNumber: 1}).select("tokenNumber status");
-    console.log("next",next)
     io.to(`hospital:${tenantId}`).emit("token:update", {
       currentToken:nextToken.tokenNumber?? null,
       nextToken: next?.tokenNumber || null
@@ -389,7 +415,6 @@ const refreshLiveToken = asynchandler(async (req, res) => {
 });
 const publicLiveToken = asynchandler(async (req, res) => {
   const { tenantId } = req.params;
-console.log(tenantId )
   if (!tenantId) {
     throw new ApiError(401, "Tenant ID is required");
   }
@@ -435,19 +460,21 @@ const yesterdayPK = formatter.format(yesterday);
 const addPatientPayment =asynchandler (async (req, res) => {
  try {
   const tenant_Id =req.user.tenantId
-  console.log(tenant_Id)
   if (!tenant_Id) {
     throw ApiError (401,"unauthorized")
   }
     const { Id } = req.params;
     const { amount } = req.body;
-   console.log(Id)
-
-    const appointment = await Appointment.findById(Id).select("payment");
-
-    if (!appointment) {
+const appointment = await Appointment.findOne({
+    _id:Id,
+    tenant_id:tenant_Id,
+  }).select("status payment");    
+  if (!appointment) {
     throw new ApiError(404, "Appointment not found");
     }
+      if (appointment.payment?.status === "PAID") {
+    throw new ApiError(400, "Payment already completed");
+  }
 const now = new Date();
 const formatter = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Asia/Karachi",
@@ -462,6 +489,9 @@ const today = formatter.format(now);
       status: "PAID",
       paidAt:  today,
     };
+if (appointment.status === "SKIPPED") {
+    appointment.status = "DONE";
+  }
 
     await appointment.save();
 
@@ -573,8 +603,6 @@ const formatter = new Intl.DateTimeFormat("en-CA", {
   month: "2-digit",
   day: "2-digit",
 });
-console.log(formatter)
-
 const today = formatter.format(now); 
 console.log(today)
 const summary = await Appointment.aggregate([
@@ -623,7 +651,6 @@ const summary = await Appointment.aggregate([
   const waitingData = summary[0]?.waitingPatients?.[0] || {};
   const doneData = summary[0]?.donePatients?.[0] || {};
 
-    console.log(summary)
    const message = `Assalam-o-Alaikum Dr. ${user.fullname},
 
 📊 Daily Summary: ${today}

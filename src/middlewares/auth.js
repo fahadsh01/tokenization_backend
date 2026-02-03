@@ -14,14 +14,13 @@ export const verifyjwt = asynchandler(async (req, _, next) => {
         console.log(decodedinfo)
     console.log("the user name is ", decodedinfo );
 
-    const user = await User.findById(decodedinfo?.userId).select(
-      "-password -refreshToken"
-    );
+    const user = await User.findById(decodedinfo?.userId).select(" fullname status role tenantid waplang ");
     if (!user) {
       throw new ApiError(401, " invalid acccess token ");
     }
+        console.log(user)
+
     req.user = user;
-    console.log("the user name is ", user.username);
     next();
   } catch (error) {
     throw new ApiError(401, error?.message || " invalid access token ");

@@ -58,31 +58,26 @@ const loginUser = asynchandler(async (req, res) => {
   if (!username || !password) {
     throw new ApiError(400, "Username and password are required");
   }
-  let user = await User.findOne({ username });
-  let role = "USER";
+  let user = await User.findOne({ username }).select("username status role expiryDate password");
   if (!user) {
-    user = await Admin.findOne({ username });
-    role = "ADMIN";
+    user = await Admin.findOne({ username }).select("role password");
   }
   if (!user) {
     throw new ApiError(401, "Invalid username or password");
   }
-  
+    let  role = user.role;
   const isPasswordValid = await user.ispasswordcorrect(password);
   if (!isPasswordValid) {
     throw new ApiError(401, "Invalid  password");
   }
-  if (role === "USER" && user.expiryDate < new Date()) {
+  if (role === "HOSPITAL_ADMIN" && user.expiryDate < new Date()) {
   if (user.status !== "EXPIRED") {
     user.status = "EXPIRED";
     await user.save();
   }
 }
   const { accessToken, refreshToken } =await generateAccessandRefreshToken(user._id);
-  const loggedInUser =
-    role === "ADMIN"
-      ? await Admin.findById(user._id).select("role")
-      : await User.findById(user._id).select("role");
+  
 const options = {
   httpOnly: true,
   secure: true,        // REQUIRED for HTTPS
@@ -95,7 +90,7 @@ const options = {
     .json(
       new ApiResponse(
         200,
-        { user: loggedInUser },
+        {role},
         "User logged in successfully"
       )
     );
@@ -116,8 +111,6 @@ const logoutUser = asynchandler(async (req, res) => {
       { new: true }
     );
   }
-console.log(user)
-
   if (!user) {
     throw new ApiError(401, "Invalid user");
   }
@@ -144,7 +137,7 @@ const refreshAccessToken = asynchandler(async (req, res) => {
       process.env.REFRESH_TOKEN_SECRET
     );
 
-    const user = await Admin.findById(verifyRjwt?._id);
+    const user = await User.findById(verifyRjwt?._id).select("refreshToken");
     if (!user) {
       throw new ApiError(401, "invalid refresh Token ");
     }
@@ -157,6 +150,7 @@ const refreshAccessToken = asynchandler(async (req, res) => {
     const option = {
       httpOnly: true,
       secure: true,
+      sameSite:"none",
     };
     return res
       .status(200)
@@ -172,22 +166,6 @@ const refreshAccessToken = asynchandler(async (req, res) => {
   } catch (error) {
     throw new ApiError(401, error?.message || "invalid refresh Token ");
   }
-});
-const changeOldPassword = asynchandler(async (req, res) => {
-  const { oldPassword, newPassword } = req.body;
-  const user = await Admin.findById(req.user?._id);
-  if (!user) {
-    throw new ApiError(400, "user Not found ");
-  }
-  const isMatch = await user.ispasswordcorrect(oldPassword);
-  if (!isMatch) {
-    throw new ApiError(401, "invalid Old Password  ");
-  }
-  user.password = newPassword;
-  await user.save({ validateBeforeSave: false });
-  return res
-    .status(200)
-    .json(new ApiResponse(200, {}, "Password is updated sucussfully"));
 });
 const authMe = asynchandler(async (req, res) => {
   if (!req.user) {
@@ -211,6 +189,5 @@ export {
   loginUser,
   logoutUser,
   refreshAccessToken,
-  changeOldPassword,
   authMe,
 };

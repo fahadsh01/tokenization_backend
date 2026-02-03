@@ -9,6 +9,7 @@ const userSchema = new Schema(
     tenantid: {
       type: String,
       default: null,
+       required: true,
       unique: true,
     },
     username: {
@@ -33,6 +34,12 @@ const userSchema = new Schema(
       type: String,
       required: true,
     },
+    waplang: {
+  type: String,
+  enum: ["EN", "UR"],
+  default: "EN",
+},
+
 
     password: {
       type: String,
@@ -79,7 +86,7 @@ whatsappConfig: {
 
     planType: {
       type: String,
-      enum: ["Trial","Monthly", "Yearly", "One_Time"],
+      enum: ["Trial","Monthly", "Yearly",],
       required: true,
     },
      expiryDate: {
@@ -97,7 +104,7 @@ whatsappConfig: {
       default: "Active",
     },
      subscriptionPrice: {
-      type: String,
+      type: Number,
       required: true,
     },
 

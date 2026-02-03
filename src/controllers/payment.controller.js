@@ -11,7 +11,6 @@ const createPayment = asynchandler(async (req, res) => {
 if (!tenantid) {
         throw new ApiError(401, "unauthorized");
 }
-console.log("the id",tenantid)
     const { title,amount,bank,planType} = req.body;
   if (
     [title,amount,bank,planType].some(
@@ -21,13 +20,11 @@ console.log("the id",tenantid)
     throw new ApiError(400, "All the fields are required ");
   }
 const ImageLocalpath = req.file?.path;
-  console.log("the id",ImageLocalpath)
 
   if (!ImageLocalpath) {
     throw new ApiError(400, "path for  image is required ");
   }
   const Image = await fileuploader(ImageLocalpath);
-console.log("the Image",Image)
   if (!Image) {
     throw new ApiError(500, "Image is not uploaded ");
   }
@@ -36,7 +33,6 @@ console.log("the Image",Image)
     screenshot: Image.url,
     publicid: Image.public_id,
   });
-  console.log("here is the public id :", Image.public_id);
   if (!Payment) {
     throw new ApiError(500, " Payment verification request failed. ");
   }
@@ -54,14 +50,12 @@ const getPayments = asynchandler(async (req, res) => {
   throw new ApiError(401, "unauthorized");
  }
   const Payments = await Payment.find({status});
-  console.log(Payments)
   if (!Payments|| Payments.length === 0) {
  return res
     .status(200)
     .json(
       new ApiResponse(200, Payments, `No ${status} Payments `)
     );}
-    console.log(Payments)
   return res
     .status(200)
     .json(
@@ -155,7 +149,6 @@ const getTnantPayments = asynchandler(async (req, res) => {
 if (!tenantid) {
         throw new ApiError(401, "unauthorized");
 }
-console.log("the id",tenantid)
   const Payments = await Payment.find({tenantid});
   if (!Payments|| Payments.length === 0) {
  return res
@@ -192,7 +185,6 @@ const addAccount = asynchandler(async (req, res) => {
     throw new ApiError(401, "Unauthorized");
   }
     const {title,accountNumber,bank,} = req.body;
-    console.log(title,accountNumber,bank)
   if (
     [title,accountNumber,bank].some(
       (field) => !field || field.toString().trim() === ""

@@ -7,7 +7,7 @@ const appointmentSchema = new Schema(
       required: true,
       index: true,
     },
-
+ time:{String},
     appointmentDatePK: {
       type: String, // "YYYY-MM-DD" Pakistan date
       required: true,

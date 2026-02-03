@@ -13,6 +13,7 @@ const register = asynchandler(async (req, res) => {
     hospitalname,
     tenantid,
     contact,
+    waplang,
     email,
     username,
     password,
@@ -24,7 +25,7 @@ const register = asynchandler(async (req, res) => {
     status,
   } = req.body;
   if (
-    [fullname, hospitalname, tenantid, contact, username, password].some(
+    [fullname, hospitalname, tenantid, contact, username, password, waplang,].some(
       (field) => !field || field.trim() === ""
     )
   ) {
@@ -43,6 +44,7 @@ const register = asynchandler(async (req, res) => {
     tenantid,
     contact,
     email,
+    waplang,
     username,
     password,
     role:"HOSPITAL_ADMIN",
@@ -128,7 +130,7 @@ const  getUserSettings= asynchandler(async (req, res) => {
   if (!id) {
     throw new ApiError(401, "Unauthorized");
   }
- const user=await User.findById(id).select("settings")
+ const user=await User.findById(id).select("settings waplang")
   return res.status(200).json(
     new ApiResponse(
       200,
@@ -158,9 +160,30 @@ const  changeSettings= asynchandler(async (req, res) => {
     )
   );
 });
+const  changewaplang= asynchandler(async (req, res) => {
+  const id =req.user._id
+  const {waplang}=req.body
+  if (!id) {
+    throw new ApiError(401, "Unauthorized");
+  }
+ const user=await User.findByIdAndUpdate(id,
+      { $set: { waplang} },{new:true}
+ )
+ if (!user) {
+  throw new ApiError(401, "Unauthorized");
+
+ }
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+     {},
+      "settings"
+    )
+  );
+});
 export {
   register,
   tenants,
-  forgetPassword,getUserProfile,getUserSettings,changeSettings
+  forgetPassword,getUserProfile,getUserSettings,changeSettings,changewaplang
 };
 
