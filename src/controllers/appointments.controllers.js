@@ -58,8 +58,8 @@ if (amount) {
 const appointment = await Appointment.create(appointmentData);
     const link = generateTenantLink(tenant_id);
 
-
-const messageu = `🌸 السلام علیکم ${patientName}،
+console.log
+const messageu = ` السلام علیکم ${patientName}،
 
 آپ کا اپائنٹمنٹ ٹوکن کامیابی سے جاری ہو گیا ہے۔
 🔹 ٹوکن نمبر: ${tokenNumber}
@@ -82,8 +82,7 @@ Your appointment token has been generated.
 ${link}
 
 ⚠️ Please check the live token status before coming.
-✅ Come when your token number is near, 
-   so you don’t have to wait at the clinic.
+✅ Come when your token number is near, so you don’t have to wait at the clinic.
 
 Thank you,
 Dr. ${req.user.fullname}`;
@@ -92,7 +91,6 @@ const message = req.user.waplang === "EN" ? messagee : messageu;
 
 
 
-  const whatsappUrl = `https://wa.me/${whatsapp}?text=${encodeURIComponent(message)}`;
   const desktopUrl = `whatsapp://send?phone=${whatsapp}&text=${encodeURIComponent(message)}`;
 
      return res
@@ -101,8 +99,8 @@ const message = req.user.waplang === "EN" ? messagee : messageu;
     new ApiResponse(
       200,
       {
-        appointment,
-        whatsappUrl,
+        tokenNumber:appointment.tokenNumber,
+        patientName:appointment.patientName,
         desktopUrl,
       },
       "Appointment created successfully"

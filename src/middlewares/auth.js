@@ -18,8 +18,6 @@ export const verifyjwt = asynchandler(async (req, _, next) => {
     if (!user) {
       throw new ApiError(401, " invalid acccess token ");
     }
-        console.log(user)
-
     req.user = user;
     next();
   } catch (error) {
