@@ -19,7 +19,6 @@ payment.route("/PaymentApproval").post(authmeJWT,PaymentApproval)
 payment.route("/addAccount").post(authmeJWT,addAccount)
 payment.route("/getAccount").get(authmeJWT,getAccount)
 payment.route("/rejectPayment").post(authmeJWT,RejectPayment)
-
 payment
   .route("/deleteAccount/:id")
   .delete(authmeJWT,deleteAccount);

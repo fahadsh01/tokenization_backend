@@ -68,7 +68,8 @@ const messageu = `🌸 السلام علیکم ${patientName}،
 ${link}
 
 ⚠️ کلینک آنے سے پہلے لائیو ٹوکن اسٹیٹس ضرور چیک کریں۔
-✅ جب آپ کا ٹوکن نمبر قریب ہو، اسی وقت آئیں تاکہ ہسپتال میں انتظار نہ کرنا پڑے۔
+✅ جب آپ کا ٹوکن نمبر قریب ہو، اسی وقت آئیں تاکہ 
+                  ہسپتال میں انتظار نہ کرنا پڑے۔
 
 شکریہ،
 Dr. ${req.user.fullname}`;
@@ -82,7 +83,8 @@ Your appointment token has been generated.
 ${link}
 
 ⚠️ Please check the live token status before coming.
-✅ Come when your token number is near, so you don’t have to wait at the clinic.
+✅ Come when your token number is near, 
+   so you don’t have to wait at the clinic.
 
 Thank you,
 Dr. ${req.user.fullname}`;
