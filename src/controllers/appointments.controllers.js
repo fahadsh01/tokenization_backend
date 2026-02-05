@@ -5,6 +5,7 @@ import { Appointment } from "../models/createappointment.model.js";
 import { Counter } from "../models/livecounter.model.js";
 import { generateTenantLink } from "../utils/generateTenantLink.js";
 import { User } from "../models/user.model.js";
+import {Message } from "../models/message.model.js";
 import { io } from "../index.js";
 import payment from "../Routes/payments.routes .js";
 const createappointment= asynchandler(async(req,res)=>{
@@ -416,7 +417,9 @@ const publicLiveToken = asynchandler(async (req, res) => {
   if (!tenantId) {
     throw new ApiError(401, "Tenant ID is required");
   }
-const hospital = await User.findOne({tenantid: tenantId,}).select("hospitalname")
+const hospital = await User.findOne({tenantid: tenantId,}).select("hospitalname fullname")
+const message = await Message.findOne({tenant_id: tenantId,}).select("message type")
+
     const now = new Date();
 const formatter = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Asia/Karachi",
@@ -449,7 +452,8 @@ const yesterdayPK = formatter.format(yesterday);
     new ApiResponse(200, {
       currentToken: currentToken?.tokenNumber ?? null,
       nextToken: nextToken?.tokenNumber ?? null,
-      hospital:hospital?.hospitalname,
+      hospital,
+      message,
        remainingTokens:nexts,
       queueState: currentToken ? "IN_PROGRESS" : "IDLE",
     })

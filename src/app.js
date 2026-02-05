@@ -33,12 +33,14 @@ import router from "./Routes/user.routes.js";
 import admin from "./Routes/admin.routes.js";
 import appointment from "./Routes/appionment.routes.js"
 import payment from "./Routes/payments.routes .js";
+import message from "./Routes/messages.routes.js";
 import errorHandler from "./middlewares/errorHandler.js"
 
-// routes declaration
+// routes declaration message
 app.use("/api/v1/users", router);
 app.use("/api/v1/admin", admin);
 app.use("/api/v1/appointment", appointment);
+app.use("/api/v1/message", message);
 app.use("/api/v1/payment",payment);
 app.use(errorHandler);
 
