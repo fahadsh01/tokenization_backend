@@ -11,9 +11,6 @@ export const verifyjwt = asynchandler(async (req, _, next) => {
       throw new ApiError(401, " Unauthorized request");
     }
     const decodedinfo = jwt.verify(Token, process.env.ACCESS_TOKEN_SECRET);
-        console.log(decodedinfo)
-    console.log("the user name is ", decodedinfo );
-
     const user = await User.findById(decodedinfo?.userId).select(" fullname status role tenantid waplang ");
     if (!user) {
       throw new ApiError(401, " invalid acccess token ");
