@@ -455,7 +455,6 @@ const yesterdayPK = formatter.format(yesterday);
       hospital,
       message,
        remainingTokens:nexts,
-      queueState: currentToken ? "IN_PROGRESS" : "IDLE",
     })
   );
 });
