@@ -7,7 +7,6 @@ import { generateTenantLink } from "../utils/generateTenantLink.js";
 import { User } from "../models/user.model.js";
 import {Message } from "../models/message.model.js";
 import { io } from "../index.js";
-import payment from "../Routes/payments.routes .js";
 const createappointment= asynchandler(async(req,res)=>{
     const { patientName, whatsapp,amount,time } = req.body;
     const tenant_id = req.user.tenantid;
@@ -455,7 +454,7 @@ const yesterdayPK = formatter.format(yesterday);
       hospital,
       message,
        remainingTokens:nexts,
-    })
+    },"successful fetched")
   );
 });
 const addPatientPayment =asynchandler (async (req, res) => {
