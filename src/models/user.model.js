@@ -100,7 +100,7 @@ whatsappConfig: {
     },
     status: {
       type: String,
-      enum: ["Active", "EXPIRED", "SUSPENDED"],
+      enum: ["Active", "Expired", "Suspanded"],
       default: "Active",
     },
      subscriptionPrice: {

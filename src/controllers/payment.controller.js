@@ -85,7 +85,7 @@ const PaymentApproval = asynchandler(async (req, res) => {
         planType,
         price,
         expiryDate,
-        status: "Active",
+        status: "Active", 
       },
       { new: true, session }
     );
