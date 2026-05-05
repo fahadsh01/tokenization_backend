@@ -71,8 +71,8 @@ const loginUser = asynchandler(async (req, res) => {
     throw new ApiError(401, "Invalid  password");
   }
   if (role === "HOSPITAL_ADMIN" && user.expiryDate < new Date()) {
-  if (user.status !== "EXPIRED") {
-    user.status = "EXPIRED";
+  if (user.status !== "Expired") {
+    user.status = "Expired";
     await user.save();
   }
 }

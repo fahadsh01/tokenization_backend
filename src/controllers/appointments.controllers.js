@@ -655,10 +655,10 @@ const summary = await Appointment.aggregate([
 
 📊 Daily Summary: ${today}
 
-🔹 Today’s Paid Patients : ${paidData.totalPatients}
-🔹 Total Earnings: PKR ${paidData.totalAmount}
-🔹 Today’s In Waiting: ${waitingData.count}
-🔹 Today’s Checked Patients: ${doneData.count}
+🔹 Today’s Paid Patients : ${paidData?.totalPatients || 0}
+🔹 Total Earnings: PKR ${paidData?.totalAmount || 0}
+🔹 Today’s In Waiting: ${waitingData?.count ||0}
+🔹 Today’s Checked Patients: ${doneData?.count ||0}
 
 Keep up the great work! 🙌
 Thank you,
